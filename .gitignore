@@ -3,3 +3,8 @@ build/
 .env
 *.log
 dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+firebase-*.json  # Any Firebase service account files
