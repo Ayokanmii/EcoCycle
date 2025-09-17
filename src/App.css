@@ -1,38 +1,65 @@
-.App {
+body {
+  background-color: #000000;
+  color: #FFFFFF;
+  font-family: Arial, sans-serif;
+  margin: 0;
+}
+
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  background-color: #00A550; /* Glo green */
   text-align: center;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+header h1 {
+  color: #FFFFFF;
+  margin: 0;
+  font-size: 24px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+main {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  gap: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+button {
+  background-color: #00A550; /* Glo green */
+  color: #FFFFFF;
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+button:hover {
+  background-color: #008040; /* Darker Glo green */
+}
+
+p, li {
+  font-size: 18px;
+  color: #FFFFFF;
+}
+
+h3 {
+  color: #00A550; /* Glo green */
+  font-size: 20px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 8px 0;
 }
