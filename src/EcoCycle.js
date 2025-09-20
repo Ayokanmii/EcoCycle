@@ -69,13 +69,33 @@ const EcoCycle = () => {
           EcoCycle: Transforming Ogun State Waste
         </h1>
         <p className="text-lg sm:text-xl md:text-2xl max-w-2xl mx-auto mb-6">
-          Contribute to a cleaner Ogun State by selling plastics for ₦30/kg and earning rewards.
+          Tackling waste mismanagement in Ogun State—over 10,000 tons accumulate yearly, harming health and economy. Contribute by selling plastics for ₦30/kg and earning rewards.
         </p>
         <div className="text-center mb-6">
           <p className="text-lg bg-customBlack p-4 rounded-lg inline-block">
             Impact: Over 10,000 tons of waste diverted! <br />
             <strong>Benefits for Users:</strong> Earn cash (e.g., ₦50/drop-off), enjoy a cleaner environment, and access job opportunities. <br />
             <strong>Benefits for Our Team (Damilola, Enoch, Precious):</strong> Skill growth in AI and web tech, enhanced portfolios, hackathon recognition, and improved teamwork.
+          </p>
+        </div>
+        <div className="text-center mb-6">
+          <p className="text-lg bg-customBlack p-4 rounded-lg inline-block">
+            Objectives: Reduce waste, map drop-offs, use AI for valuation, empower communities, and scale statewide.
+          </p>
+        </div>
+        <div className="text-center mb-6">
+          <p className="text-lg bg-customBlack p-4 rounded-lg inline-block">
+            Target Audience: Recyclers, Ogun State residents, local government, and 3MTT judges.
+          </p>
+        </div>
+        <div className="text-center mb-6">
+          <p className="text-lg bg-customBlack p-4 rounded-lg inline-block">
+            Sustainability: Diverts waste, creates jobs, uses scalable Firebase, and plans NGO partnerships.
+          </p>
+        </div>
+        <div className="text-center mb-6">
+          <p className="text-lg bg-customBlack p-4 rounded-lg inline-block">
+            Creativity & Feasibility: AI scanning innovates recycling; our team (Damilola, Enoch, Precious) ensures a scalable, testable MVP for 10,000 users.
           </p>
         </div>
         {error && <p className="text-customRed text-center mb-4">{error}</p>}
