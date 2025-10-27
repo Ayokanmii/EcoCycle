@@ -1,10 +1,95 @@
 // src/components/EcoCycleCore.jsx
 import { useState, useRef, useEffect } from "react";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  getDoc,
+} from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { FaCamera, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaTimes } from "react-icons/fa";
+import {
+  FaCamera,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaSpinner,
+  FaTimes,
+} from "react-icons/fa";
 
+// ---------------------------------------------------------------
+// 1. Tiny toast (no deps)
+// ---------------------------------------------------------------
+const Toast = ({ msg, type = "success", onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white font-medium animate-fadeIn ${
+        type === "error" ? "bg-red-600" : "bg-green-600"
+      }`}
+    >
+      {type === "success" ? (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clipRule="evenodd"
+          />
+        </svg>
+      )}
+      {msg}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------
+// 2. API helpers
+// ---------------------------------------------------------------
+const API_URL = import.meta.env.VITE_API_URL || "https://ecocycle-backend.onrender.com";
+
+const classifyWaste = async (blob) => {
+  const form = new FormData();
+  form.append("file", blob, "waste.jpg");
+
+  const res = await fetch(`${API_URL}/classify`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+  return res.json();
+};
+
+const addReward = async (uid, amount) => {
+  const token = await auth.currentUser.getIdToken();
+  const res = await fetch(`${API_URL}/wallet/${uid}/add`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error(`Wallet error ${res.status}`);
+  return res.json();
+};
+
+// ---------------------------------------------------------------
+// 3. Main component
+// ---------------------------------------------------------------
 export default function EcoCycleCore() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -15,34 +100,31 @@ export default function EcoCycleCore() {
   const [dumpLocation, setDumpLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // <-- FIXED: now defined
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
-  // Load wallet from Firestore
+  // ---------- Load wallet ----------
   useEffect(() => {
-    const loadWallet = async () => {
+    const load = async () => {
       if (auth.currentUser) {
-        const docRef = doc(db, "users", auth.currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setWallet(docSnap.data().wallet || 0);
-        }
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (snap.exists()) setWallet(snap.data().wallet || 0);
       }
     };
-    loadWallet();
+    load();
   }, []);
 
-  // Start Camera
+  // ---------- Camera ----------
   const startCamera = async () => {
     setScanning(true);
     setScanResult(null);
     setError("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } // Back camera on mobile
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
       setError("Camera access denied. Please allow in browser settings.");
       setScanning(false);
@@ -50,26 +132,26 @@ export default function EcoCycleCore() {
     }
   };
 
-  // Stop Camera
   const stopCamera = () => {
     setScanning(false);
     if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
     }
   };
 
-  // Capture & Classify
+  // ---------- Capture + AI ----------
   const captureAndClassify = async () => {
     if (!videoRef.current) return;
 
     setLoading(true);
     setError("");
+    setSuccess("");
+
     const canvas = canvasRef.current;
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d").drawImage(video, 0, 0);
 
     canvas.toBlob(async (blob) => {
       if (!blob) {
@@ -78,41 +160,32 @@ export default function EcoCycleCore() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("file", blob, "waste.jpg");
-
       try {
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API_URL}/classify`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(err || "AI server error");
-        }
-
-        const data = await res.json();
-
+        const data = await classifyWaste(blob);
         const reward = data.price_per_kg || 0;
         const newWallet = wallet + reward;
+
+        // Update local UI
         setWallet(newWallet);
-
-        // Update Firestore
-        if (auth.currentUser) {
-          await setDoc(doc(db, "users", auth.currentUser.uid), {
-            wallet: newWallet
-          }, { merge: true });
-        }
-
         setScanResult({
           class: data.class,
           confidence: data.confidence,
-          reward: reward,
-          recyclable: data.recyclable
+          reward,
+          recyclable: data.recyclable,
         });
+        setSuccess(`+₦${reward} added!`);
 
+        // Sync with backend + Firestore
+        if (auth.currentUser) {
+          await addReward(auth.currentUser.uid, reward);
+          await setDoc(
+            doc(db, "users", auth.currentUser.uid),
+            { wallet: newWallet },
+            { merge: true }
+          );
+        }
+
+        setToast({ msg: `+₦${reward} earned!`, type: "success" });
       } catch (err) {
         setError("AI scan failed. Try a clearer image.");
         console.error(err);
@@ -122,20 +195,19 @@ export default function EcoCycleCore() {
     }, "image/jpeg");
   };
 
-  // Report Dump
+  // ---------- Report Dump ----------
   const reportDump = async () => {
     if (!dumpLocation.trim()) {
       setError("Enter location");
       return;
     }
-
     try {
       await setDoc(doc(db, "dumps", Date.now().toString()), {
         location: dumpLocation,
         timestamp: serverTimestamp(),
         user: auth.currentUser?.email || "anonymous",
       });
-      setSuccess("Dump reported!");
+      setToast({ msg: "Dump reported!", type: "success" });
       setDumpLocation("");
       setShowReport(false);
     } catch (err) {
@@ -144,9 +216,7 @@ export default function EcoCycleCore() {
   };
 
   // Cleanup
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
+  useEffect(() => () => stopCamera(), []);
 
   return (
     <section className="py-12 bg-gradient-to-b from-white to-green-50 min-h-screen">
@@ -205,17 +275,26 @@ export default function EcoCycleCore() {
           )}
         </div>
 
-        {/* Error / Success */}
-        {(error || scanResult) && (
-          <div className={`mt-6 p-5 rounded-xl max-w-md mx-auto ${
-            error ? "bg-red-50 border-2 border-red-300 text-red-700" : "bg-green-50 border-2 border-green-300 text-green-700"
-          }`}>
+        {/* Messages */}
+        {(error || success || scanResult) && (
+          <div
+            className={`mt-6 p-5 rounded-xl max-w-md mx-auto ${
+              error
+                ? "bg-red-50 border-2 border-red-300 text-red-700"
+                : "bg-green-50 border-2 border-green-300 text-green-700"
+            }`}
+          >
             {error && (
               <p className="flex items-center justify-center gap-2">
                 <FaExclamationTriangle /> {error}
               </p>
             )}
-            {scanResult && (
+            {success && (
+              <p className="flex items-center justify-center gap-2">
+                <FaCheckCircle /> {success}
+              </p>
+            )}
+            {scanResult && !success && !error && (
               <div>
                 <p className="font-bold text-xl">
                   Detected: <span className="text-accent">{scanResult.class}</span>
@@ -255,7 +334,9 @@ export default function EcoCycleCore() {
               >
                 <FaTimes />
               </button>
-              <h3 className="text-xl font-bold text-primary mb-4">Report Dump Site</h3>
+              <h3 className="text-xl font-bold text-primary mb-4">
+                Report Dump Site
+              </h3>
               <input
                 type="text"
                 placeholder="e.g., Sango Ota Market"
@@ -291,6 +372,14 @@ export default function EcoCycleCore() {
           </button>
         </div>
 
+        {/* Toast */}
+        {toast && (
+          <Toast
+            msg={toast.msg}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </div>
     </section>
   );
