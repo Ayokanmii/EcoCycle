@@ -1,4 +1,4 @@
-# main.py
+# backend/main.py
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
@@ -13,10 +13,13 @@ load_dotenv()
 
 app = FastAPI(title="EcoCycle AI Backend")
 
-# Allow frontend to connect
+# Allow frontend (update with your Vercel URL later)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://your-frontend.vercel.app"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://eco-cycle-ten.vercel.app"  # ← YOUR LIVE URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,8 +32,8 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# REAL VISION MODEL (WORKS WITH IMAGES)
-VISION_MODELS = ["llava-v1.5-7b-4096-preview"]
+# REAL VISION MODEL
+VISION_MODEL = "llava-v1.5-7b-4096-preview"
 
 # PRICING (₦ per kg)
 PRICING = {
@@ -64,7 +67,7 @@ def parse_response(text):
             data = json.loads(match.group())
             cls = data.get("class", "Other").title()
             conf = float(data.get("confidence", 0.5))
-            reason = data.getnul("reasoning", "")
+            reason = data.get("reasoning", "")
             return cls, conf, reason
         # Fallback
         text_lower = text.lower()
@@ -92,7 +95,7 @@ async def classify(file: UploadFile = File(...)):
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
                 ]
             }],
-            model=VISION_MODELS[0],
+            model=VISION_MODEL,
             temperature=0.1,
             max_tokens=300
         )
@@ -107,7 +110,7 @@ async def classify(file: UploadFile = File(...)):
             "confidence": round(conf, 2),
             "recyclable": recyclable,
             "price_per_kg": price,
-            "debug": {"reasoning": reason, "model": VISION_MODELS[0]}
+            "debug": {"reasoning": reason, "model": VISION_MODEL}
         }
 
     except Exception as e:
