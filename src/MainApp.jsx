@@ -32,7 +32,7 @@ const TRANSLATIONS = {
     map: "Live Dump Reports",
     live: "Live",
     carbon: "CO₂ Saved",
-    online:: "Online Now",
+    online: "Online Now",
     greentech: "Transforming waste into income and sustainability across Ogun State.",
   },
   yo: {
