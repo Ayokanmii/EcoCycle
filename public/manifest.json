@@ -1,0 +1,8 @@
+{
+  "short_name": "EcoCycle",
+  "name": "EcoCycle: Smart Waste Management",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#00A550",
+  "background_color": "#000000"
+}

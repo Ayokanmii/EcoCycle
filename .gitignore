@@ -1,0 +1,14 @@
+# Sensitive keys
+.env
+firebase.js  # If it has keys — replace with template
+
+# Node & Python ignores
+node_modules
+venv
+*.pyc
+__pycache__
+.DS_Store
+*.log
+build
+dist
+*.env.local

@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "interval": 3600
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://firestore.googleapis.com/v1/projects/ecocycle-2a468/databases/(default)/documents/dropoffs",
+        "authentication": "none"
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "your.email@example.com",
+        "subject": "EcoCycle: Drop-Off Full Alert",
+        "message": "=Lekki drop-off is full!"
+      },
+      "name": "Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]]
+    },
+    "HTTP Request": {
+      "main": [[{ "node": "Email", "type": "main", "index": 0 }]]
+    }
+  }
+}
