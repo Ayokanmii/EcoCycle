@@ -1,46 +1,10 @@
 // src/components/EcoCycleCore.jsx
 import { useState, useRef, useEffect } from "react";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  getDoc,
-} from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import {
-  FaCamera,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaSpinner,
-  FaTimes,
-} from "react-icons/fa";
 
-/* -------------------------------------------------------------
-   1. Tiny toast (no deps)
-   ------------------------------------------------------------- */
-const Toast = ({ msg, type = "success", onClose }) => {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3000);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white font-medium animate-fadeIn transition-all ${
-        type === "error" ? "bg-red-600" : "bg-green-600"
-      }`}
-    >
-      {type === "success" ? <FaCheckCircle /> : <FaExclamationTriangle />}
-      {msg}
-    </div>
-  );
-};
-
-/* -------------------------------------------------------------
-   2. Component
-   ------------------------------------------------------------- */
-export default function EcoCycleCore({ onReward }) {
+export default function EcoCycleCore() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [scanning, setScanning] = useState(false);
@@ -49,35 +13,32 @@ export default function EcoCycleCore({ onReward }) {
   const [showReport, setShowReport] = useState(false);
   const [dumpLocation, setDumpLocation] = useState("");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
-  /* ---------- Load wallet (safe) ---------- */
+  // Load wallet from Firestore
   useEffect(() => {
-    const load = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) setWallet(snap.data().wallet || 0);
-      } catch (e) {
-        console.error(e);
+    const loadWallet = async () => {
+      if (auth.currentUser) {
+        const docRef = doc(db, "users", auth.currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setWallet(docSnap.data().wallet || 0);
+        }
       }
     };
-    load();
+    loadWallet();
   }, []);
 
-  /* ---------- Camera ---------- */
   const startCamera = async () => {
     setScanning(true);
     setScanResult(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      const stream = await navigator.mediacDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
     } catch (err) {
-      setToast({ msg: "Camera access denied", type: "error" });
+      alert("Camera access denied. Please allow camera.");
       setScanning(false);
     }
   };
@@ -89,63 +50,58 @@ export default function EcoCycleCore({ onReward }) {
     }
   };
 
-  /* ---------- Capture + AI ---------- */
   const captureAndClassify = async () => {
     if (!videoRef.current) return;
 
     setLoading(true);
-    setScanResult(null);
-
     const canvas = canvasRef.current;
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob(async blob => {
+    canvas.toBlob(async (blob) => {
       if (!blob) {
         setLoading(false);
         return;
       }
 
-      const form = new FormData();
-      form.append("file", blob, "waste.jpg");
+      const formData = new FormData();
+      formData.append("file", blob, "waste.jpg");
 
       try {
-        const API_URL =
-          import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
         const res = await fetch(`${API_URL}/classify`, {
           method: "POST",
-          body: form,
+          body: formData,
         });
 
-        if (!res.ok) throw new Error("AI server error");
-
         const data = await res.json();
-        const reward = data.price_per_kg || 0;
-        const newWallet = wallet + reward;
 
+        if (data.error) {
+          alert("AI Error: " + data.error);
+          setLoading(false);
+          return;
+        }
+
+        // Update wallet in Firestore
+        const reward = data.price_per_kg;
+        const newWallet = wallet + reward;
         setWallet(newWallet);
+
+        await setDoc(doc(db, "users", auth.currentUser.uid), {
+          wallet: newWallet
+        }, { merge: true });
+
         setScanResult({
           class: data.class,
           confidence: data.confidence,
-          reward,
-          recyclable: data.recyclable,
+          reward: reward
         });
 
-        const user = auth.currentUser;
-        if (user) {
-          await setDoc(
-            doc(db, "users", user.uid),
-            { wallet: newWallet },
-            { merge: true }
-          );
-        }
-
-        if (onReward) onReward(reward);
-        setToast({ msg: `+₦${reward} added!`, type: "success" });
       } catch (err) {
-        setToast({ msg: "AI scan failed", type: "error" });
+        alert("Backend not running. Start: uvicorn main:app --reload");
         console.error(err);
       } finally {
         setLoading(false);
@@ -153,35 +109,28 @@ export default function EcoCycleCore({ onReward }) {
     }, "image/jpeg");
   };
 
-  /* ---------- Report Dump ---------- */
   const reportDump = async () => {
-    if (!dumpLocation.trim()) {
-      setToast({ msg: "Enter a location", type: "error" });
-      return;
-    }
+    if (!dumpLocation.trim()) return;
 
-    const user = auth.currentUser;
     try {
       await setDoc(doc(db, "dumps", Date.now().toString()), {
         location: dumpLocation,
         timestamp: serverTimestamp(),
-        user: user?.email || "anonymous",
+        user: auth.currentUser.email,
       });
-      setToast({ msg: "Dump reported!", type: "success" });
+      alert("Dump reported! Thank you.");
       setDumpLocation("");
       setShowReport(false);
     } catch (err) {
-      setToast({ msg: "Failed to report", type: "error" });
+      alert("Failed to report. Try again.");
     }
   };
 
-  /* ---------- Cleanup ---------- */
-  useEffect(() => () => stopCamera(), []);
-
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-green-50 min-h-screen">
+    <section className="py-16 bg-white min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
 
+        {/* Header */}
         <h1 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
           Turn Waste into Cash
         </h1>
@@ -190,18 +139,20 @@ export default function EcoCycleCore({ onReward }) {
           Help Ogun State reach <strong className="text-accent">500 tons</strong>.
         </p>
 
-        <div className="bg-gradient-to-r from-primary to-accent text-white p-6 rounded-2xl inline-block mb-8 shadow-xl">
+        {/* Wallet */}
+        <div className="bg-primary text-white p-6 rounded-xl inline-block mb-8 shadow-lg">
           <p className="text-sm opacity-90">Your Wallet</p>
-          <p className="text-4xl font-bold">₦{wallet.toLocaleString()}</p>
+          <p className="text-3xl font-bold">₦{wallet}</p>
         </div>
 
-        <div className="relative inline-block max-w-md w-full">
+        {/* Camera */}
+        <div className="relative inline-block">
           <video
             ref={videoRef}
             autoPlay
             muted
             playsInline
-            className="w-full rounded-2xl shadow-2xl border-4 border-gray-200"
+            className="w-full max-w-md rounded-xl shadow-lg border-4 border-gray-200"
             style={{ display: scanning ? "block" : "none" }}
           />
           <canvas ref={canvasRef} className="hidden" />
@@ -209,22 +160,22 @@ export default function EcoCycleCore({ onReward }) {
           {!scanning ? (
             <button
               onClick={startCamera}
-              className="bg-primary text-white px-8 py-4 rounded-2xl hover:bg-accent transition font-bold text-lg shadow-lg flex items-center gap-3 mx-auto"
+              className="bg-primary text-white px-8 py-4 rounded-lg hover:bg-green-700 transition font-bold text-lg shadow-md"
             >
-              <FaCamera /> Start Camera
+              Start Camera
             </button>
           ) : (
-            <div className="mt-6 flex gap-4 justify-center">
+            <div className="mt-6 space-x-4">
               <button
                 onClick={captureAndClassify}
                 disabled={loading}
-                className="bg-accent text-white px-6 py-3 rounded-xl hover:bg-green-700 disabled:opacity-50 font-semibold flex items-center gap-2"
+                className="bg-accent text-white px-6 py-3 rounded-lg hover:bg-green-800 disabled:opacity-50 font-semibold"
               >
-                {loading ? <FaSpinner className="animate-spin" /> : "Scan Waste"}
+                {loading ? "Analyzing..." : "Scan Waste"}
               </button>
               <button
                 onClick={stopCamera}
-                className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 font-semibold"
+PROG                className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-semibold"
               >
                 Stop
               </button>
@@ -232,54 +183,47 @@ export default function EcoCycleCore({ onReward }) {
           )}
         </div>
 
+        {/* AI Result */}
         {scanResult && (
-          <div className="mt-8 p-5 bg-green-50 border-2 border-green-300 rounded-xl max-w-md mx-auto text-green-700">
-            <p className="font-bold text-xl">
+          <div className="mt-8 p-5 bg-green-50 border-2 border-green-300 rounded-xl max-w-md mx-auto">
+            <p className="text-primary font-bold text-xl">
               Detected: <span className="text-accent">{scanResult.class}</span>
             </p>
-            <p className="text-sm mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               Confidence: {(scanResult.confidence * 100).toFixed(0)}%
             </p>
-            {scanResult.recyclable ? (
-              <p className="text-lg font-bold mt-2">
-                <FaCheckCircle className="inline" /> +₦{scanResult.reward} added!
-              </p>
-            ) : (
-              <p className="text-red-600">Not recyclable</p>
-            )}
+            <p className="text-lg font-bold text-green-700 mt-2">
+              +₦{scanResult.reward} added!
+            </p>
           </div>
         )}
 
+        {/* Report Dump */}
         <div className="mt-12">
           <button
             onClick={() => setShowReport(true)}
-            className="bg-red-600 text-white px-8 py-3 rounded-xl hover:bg-red-700 transition font-semibold flex items-center gap-2 mx-auto"
+            className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition font-semibold"
           >
-            <FaExclamationTriangle /> Report Illegal Dump
+            Report Illegal Dump
           </button>
         </div>
 
+        {/* Report Modal */}
         {showReport && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <div className="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl relative">
-              <button
-                onClick={() => setShowReport(false)}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div className="bg-white p-6 rounded-xl max-w-md w-full shadow-2xl">
               <h3 className="text-xl font-bold text-primary mb-4">Report Dump Site</h3>
               <input
                 type="text"
                 placeholder="e.g., Sango Ota Market"
                 value={dumpLocation}
-                onChange={e => setDumpLocation(e.target.value)}
+                onChange={(e) => setDumpLocation(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <div className="flex gap-3">
                 <button
                   onClick={reportDump}
-                  className="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-accent font-medium"
+                  className="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-green-700 font-medium"
                 >
                   Submit
                 </button>
@@ -294,6 +238,7 @@ export default function EcoCycleCore({ onReward }) {
           </div>
         )}
 
+        {/* How to Recycle */}
         <div className="mt-12">
           <button
             onClick={() => navigate("/how-to-recycle")}
@@ -303,9 +248,6 @@ export default function EcoCycleCore({ onReward }) {
           </button>
         </div>
 
-        {toast && (
-          <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
-        )}
       </div>
     </section>
   );
