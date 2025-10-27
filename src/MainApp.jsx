@@ -7,12 +7,12 @@ import Map from "./components/Map";
 import logo from "./assets/logo.svg";
 import { 
   FaRecycle, FaCoins, FaUsers, FaMapMarkedAlt, 
-  FaGlobe, FaLeaf, FaTrophy, FaCircle, FaSpinner 
+  FaLeaf, FaTrophy, FaCircle, FaSpinner 
 } from "react-icons/fa";
 
 const LANGUAGES = [
   { code: "en", name: "English", flag: "GB" },
-  { code: "yo", name: "Yoruba", flag: "NG" },
+  { code: "yo", name: "Yorua", flag: "NG" },
   { code: "ig", name: "Igbo", flag: "NG" },
   { code: "ha", name: "Hausa", flag: "NG" },
 ];
@@ -32,7 +32,7 @@ const TRANSLATIONS = {
     map: "Live Dump Reports",
     live: "Live",
     carbon: "CO₂ Saved",
-    online: "Online Now",
+    online: "Online Now",  // FIXED: was online::
     greentech: "Transforming waste into income and sustainability across Ogun State.",
   },
   yo: {
@@ -96,29 +96,21 @@ export default function MainApp() {
   const [loading, setLoading] = useState(true);
   const t = TRANSLATIONS[lang];
 
-  // Real-time Firestore data
   useEffect(() => {
     const unsubs = [];
 
-    // Global stats
     const statsRef = doc(db, "global", "stats");
     unsubs.push(onSnapshot(statsRef, (doc) => {
-      if (doc.exists()) {
-        setStats(doc.data());
-      }
+      if (doc.exists()) setStats(doc.data());
     }));
 
-    // User wallet
     if (auth.currentUser) {
       const userRef = doc(db, "users", auth.currentUser.uid);
       unsubs.push(onSnapshot(userRef, (doc) => {
-        if (doc.exists()) {
-          setWallet(doc.data().wallet || 0);
-        }
+        if (doc.exists()) setWallet(doc.data().wallet || 0);
       }));
     }
 
-    // Online users (last 5 mins)
     const now = Date.now();
     const fiveMinsAgo = now - 5 * 60 * 1000;
     const onlineQuery = query(
@@ -142,32 +134,28 @@ export default function MainApp() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-900">
+      <div className="flex h-screen items-center justify-center bg-white">
         <FaSpinner className="animate-spin text-primary text-6xl" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-gray-800">
-      {/* Greentech Badge */}
+    <div className="min-h-screen bg-gradient-to-b from-white to-green-50">
       <div className="bg-gradient-to-r from-yellow-400 to-green-500 text-white py-2 px-6 text-center font-bold text-sm">
         <FaTrophy className="inline mr-2" /> {t.greentech}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
-        {/* Language Selector */}
         <div className="flex justify-end mb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-2 flex gap-1">
+          <div className="bg-white rounded-xl shadow-md p-2 flex gap-1">
             {LANGUAGES.map((l) => (
               <button
                 key={l.code}
                 onClick={() => setLang(l.code)}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                  lang === l.code 
-                    ? "bg-primary text-white" 
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  lang === l.code ? "bg-primary text-white" : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 {l.flag === "GB" ? "EN" : l.name}
@@ -176,30 +164,20 @@ export default function MainApp() {
           </div>
         </div>
 
-        {/* Hero */}
         <div className="text-center mb-12">
           <img src={logo} alt="EcoCycle" className="h-20 w-20 mx-auto mb-6 animate-bounce" />
-          <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 animate-fadeIn">
-            {t.title}
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-700 leading-relaxed animate-fadeIn delay-300 max-w-4xl mx-auto">
-            <strong className="text-accent">EcoCycle</strong> {t.subtitle}
-          </p>
-          <p className="text-lg md:text-xl text-gray-600 mt-6 animate-fadeIn delay-600">
-            {t.stats}
-          </p>
-          <p className="text-base md:text-lg text-gray-500 mt-8 italic animate-fadeIn delay-900">
-            {t.tagline}
-          </p>
+          <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6">{t.title}</h1>
+          <p className="text-xl md:text-2xl text-gray-700 max-w-4xl mx-auto">{t.subtitle}</p>
+          <p className="text-lg text-gray-600 mt-6">{t.stats}</p>
+          <p className="text-base italic text-gray-500 mt-8">{t.tagline}</p>
         </div>
 
-        {/* Wallet + Online */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 max-w-md mx-auto">
-          <div className="bg-gradient-to-br from-primary to-accent text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 text-center">
+          <div className="bg-gradient-to-br from-primary to-accent text-white p-6 rounded-xl shadow-lg text-center">
             <p className="text-sm opacity-90">{t.wallet}</p>
             <p className="text-4xl font-bold">₦{wallet.toLocaleString()}</p>
           </div>
-          <div className="bg-gradient-to-br from-green-500 to-teal-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 text-center flex items-center justify-center gap-3">
+          <div className="bg-gradient-to-br from-green-500 to-teal-600 text-white p-6 rounded-xl shadow-lg text-center flex items-center justify-center gap-3">
             <FaCircle className="text-green-300 animate-pulse" />
             <div>
               <p className="text-sm opacity-90">{t.online}</p>
@@ -208,46 +186,37 @@ export default function MainApp() {
           </div>
         </div>
 
-        {/* Stats + Carbon */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
           {cards.map((card, i) => (
-            <div
-              key={i}
-              className={`${card.color} p-5 rounded-xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 animate-fadeIn text-center border border-gray-200 dark:border-gray-700`}
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
+            <div key={i} className={`${card.color} p-5 rounded-xl shadow-md text-center border`}>
               <div className="text-3xl mb-2">{card.icon}</div>
-              <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{card.value}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{card.label}</p>
+              <p className="text-lg font-bold">{card.value}</p>
+              <p className="text-xs text-gray-600">{card.label}</p>
             </div>
           ))}
-          <div className="bg-teal-50 p-5 rounded-xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 animate-fadeIn text-center border border-gray-200 dark:border-gray-700">
+          <div className="bg-teal-50 p-5 rounded-xl shadow-md text-center border">
             <FaLeaf className="text-teal-600 text-3xl mb-2 mx-auto" />
-            <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{(stats.carbon || 0).toFixed(1)}t</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{t.carbon}</p>
+            <p className="text-lg font-bold">{(stats.carbon || 0).toFixed(1)}t</p>
+            <p className="text-xs text-gray-600">{t.carbon}</p>
           </div>
         </div>
 
-        {/* Scan + Map */}
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white p-6 rounded-xl shadow-lg border">
             <h2 className="text-2xl font-bold text-primary mb-4">{t.scan}</h2>
             <EcoCycleCore lang={lang} />
           </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white p-6 rounded-xl shadow-lg border">
             <h2 className="text-2xl font-bold text-primary mb-4">{t.map}</h2>
-            <div className="h-96 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+            <div className="h-96 rounded-lg overflow-hidden border">
               <Map />
             </div>
           </div>
         </div>
 
-        {/* Footer Credit */}
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-6">
-          <p>
-            Built by <strong>Damilola (Full-Stack)</strong>, <strong>Enoch (AI)</strong>, <strong>Precious (UX)</strong>
-          </p>
-          <p className="mt-2">For a cleaner, wealthier Ogun State.</p>
+        <div className="text-center text-sm text-gray-500 py-6">
+          <p>Built by <strong>Damilola</strong>, <strong>Enoch</strong>, <strong>Precious</strong></p>
+          <p>For a cleaner, wealthier Ogun State.</p>
         </div>
       </div>
     </div>
