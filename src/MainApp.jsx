@@ -1,55 +1,15 @@
 // src/MainApp.jsx
 import { useState, useEffect } from "react";
-import {
-  doc,
-  onSnapshot,
-  collection,
-  query,
-  where,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import EcoCycleCore from "./components/EcoCycleCore";
 import Map from "./components/Map";
 import logo from "./assets/logo.svg";
-import {
-  FaRecycle,
-  FaCoins,
-  FaUsers,
-  FaMapMarkedAlt,
-  FaGlobe,
-  FaLeaf,
-  FaTrophy,
-  FaCircle,
-  FaCheckCircle,
-  FaExclamationTriangle,
+import { 
+  FaRecycle, FaCoins, FaUsers, FaMapMarkedAlt, 
+  FaGlobe, FaLeaf, FaTrophy, FaCircle 
 } from "react-icons/fa";
 
-// ---------------------------------------------------------------
-// 1. Tiny Toast (no deps)
-// ---------------------------------------------------------------
-const Toast = ({ msg, type = "success", onClose }) => {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3000);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white font-medium animate-fadeIn transition-all ${
-        type === "error" ? "bg-red-600" : "bg-green-600"
-      }`}
-    >
-      {type === "success" ? <FaCheckCircle /> : <FaExclamationTriangle />}
-      {msg}
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------
-// 2. Language & Translations
-// ---------------------------------------------------------------
 const LANGUAGES = [
   { code: "en", name: "English", flag: "GB" },
   { code: "yo", name: "Yoruba", flag: "NG" },
@@ -73,7 +33,7 @@ const TRANSLATIONS = {
     live: "Live",
     carbon: "CO₂ Saved",
     online: "Online Now",
-    greentech: "Ogun Greentech Challenge",
+    greentech: "Transforming waste into income and sustainability across Ogun State.",
   },
   yo: {
     title: "Sísọ Ìdọ̀tí Di Owó",
@@ -128,107 +88,51 @@ const TRANSLATIONS = {
   },
 };
 
-// ---------------------------------------------------------------
-// 3. API Helper (for wallet sync)
-// ---------------------------------------------------------------
-const API_URL = import.meta.env.VITE_API_URL || "https://ecocycle-backend.onrender.com";
-
-const addReward = async (uid, amount) => {
-  if (!auth.currentUser) return;
-  const token = await auth.currentUser.getIdToken();
-  await fetch(`${API_URL}/wallet/${uid}/add`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ amount }),
-  });
-};
-
-// ---------------------------------------------------------------
-// 4. Main App Component
-// ---------------------------------------------------------------
 export default function MainApp() {
   const [lang, setLang] = useState("en");
   const [stats, setStats] = useState({ recycled: 0, earnings: 0, users: 0, carbon: 0 });
   const [wallet, setWallet] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
   const t = TRANSLATIONS[lang];
 
-  // -----------------------------------------------------------------
-  // Real-time Firestore listeners
-  // -----------------------------------------------------------------
+  // Real-time Firestore data
   useEffect(() => {
     const unsubs = [];
 
     // Global stats
     const statsRef = doc(db, "global", "stats");
-    unsubs.push(
-      onSnapshot(statsRef, (doc) => {
-        if (doc.exists()) setStats(doc.data());
-      })
-    );
+    unsubs.push(onSnapshot(statsRef, (doc) => {
+      if (doc.exists()) {
+        setStats(doc.data());
+      }
+    }));
 
     // User wallet
     if (auth.currentUser) {
       const userRef = doc(db, "users", auth.currentUser.uid);
-      unsubs.push(
-        onSnapshot(userRef, (doc) => {
-          if (doc.exists()) setWallet(doc.data().wallet || 0);
-        })
-      );
+      unsubs.push(onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+          setWallet(doc.data().wallet || 0);
+        }
+      }));
     }
 
     // Online users (last 5 mins)
-    const updateOnline = async () => {
-      if (!auth.currentUser) return;
-      await setDoc(
-        doc(db, "users", auth.currentUser.uid),
-        { lastActive: Date.now() },
-        { merge: true }
-      );
-    };
-
-    updateOnline();
-    const interval = setInterval(updateOnline, 30_000); // every 30s
-
     const now = Date.now();
     const fiveMinsAgo = now - 5 * 60 * 1000;
     const onlineQuery = query(
       collection(db, "users"),
       where("lastActive", ">=", fiveMinsAgo)
     );
-    unsubs.push(
-      onSnapshot(onlineQuery, (snap) => {
-        setOnlineUsers(snap.size);
-      })
-    );
+    unsubs.push(onSnapshot(onlineQuery, (snap) => {
+      setOnlineUsers(snap.size);
+    }));
 
     setLoading(false);
-
-    return () => {
-      unsubs.forEach((u) => u());
-      clearInterval(interval);
-    };
+    return () => unsubs.forEach(u => u());
   }, []);
 
-  // -----------------------------------------------------------------
-  // Pass reward to backend (called from EcoCycleCore)
-  // -----------------------------------------------------------------
-  const handleReward = async (amount) => {
-    if (!auth.currentUser) return;
-    try {
-      await addReward(auth.currentUser.uid, amount);
-      setToast({ msg: `+₦${amount} added!`, type: "success" });
-    } catch (err) {
-      setToast({ msg: "Wallet sync failed", type: "error" });
-    }
-  };
-
-  // Expose via context or prop – here we pass via prop
   const cards = [
     { icon: <FaRecycle />, value: `${stats.recycled} tons`, label: t.recycled, color: "bg-green-100" },
     { icon: <FaCoins />, value: `₦${stats.earnings.toLocaleString()}`, label: t.earned, color: "bg-yellow-100" },
@@ -260,9 +164,9 @@ export default function MainApp() {
               <button
                 key={l.code}
                 onClick={() => setLang(l.code)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition flex items-center gap-1 ${
-                  lang === l.code
-                    ? "bg-primary text-white"
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                  lang === l.code 
+                    ? "bg-primary text-white" 
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
               >
@@ -328,7 +232,7 @@ export default function MainApp() {
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
             <h2 className="text-2xl font-bold text-primary mb-4">{t.scan}</h2>
-            <EcoCycleCore lang={lang} onReward={handleReward} />
+            <EcoCycleCore lang={lang} />
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
             <h2 className="text-2xl font-bold text-primary mb-4">{t.map}</h2>
@@ -338,10 +242,6 @@ export default function MainApp() {
           </div>
         </div>
 
-        {/* Toast */}
-        {toast && (
-          <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
-        )}
       </div>
     </div>
   );
