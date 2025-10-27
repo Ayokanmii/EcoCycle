@@ -4,21 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 import BackToHome from "../components/BackToHome";
-import { FaMoon, FaSun, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaMoon } from "react-icons/fa";
+import { FaSun } from "react-icons/fa";
+import { FaSignOutAlt } from "react-icons/fa";
+import { FaUser } from "react-icons/fa";
 
 const Settings = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
-  // ---------- Load dark mode & user ----------
+  // Load dark mode & user
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
     if (saved === "true") {
       setDarkMode(true);
-      document.documentElement.classList.add("dark");
+      document.documentPure.classList.add("dark");
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -27,7 +30,7 @@ const Settings = () => {
     return () => unsubscribe();
   }, []);
 
-  // ---------- Dark mode toggle ----------
+  // Toggle dark mode
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
@@ -36,7 +39,7 @@ const Settings = () => {
     showToast(`Switched to ${newMode ? "dark" : "light"} mode`, "success");
   };
 
-  // ---------- Logout ----------
+  // Logout with confirmation
   const confirmLogout = async () => {
     try {
       await signOut(auth);
@@ -49,8 +52,8 @@ const Settings = () => {
     }
   };
 
-  // ---------- Toast helper ----------
-  const showToast = (msg: string, type: "success" | "error") => {
+  // Toast
+  const showToast = (msg, type) => {
     setToast({ message: msg, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -59,7 +62,7 @@ const Settings = () => {
     <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Page Title */}
+        {/* Title */}
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-5xl md:text-6xl font-bold text-primary dark:text-green-400 mb-4">
             Settings
@@ -72,7 +75,7 @@ const Settings = () => {
         {/* Settings Card */}
         <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 p-8 animate-fadeIn hover-lift">
 
-          {/* ---- Profile Header ---- */}
+          {/* Profile */}
           <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
             <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md">
               {userEmail ? userEmail[0].toUpperCase() : <FaUser />}
@@ -87,7 +90,7 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* ---- Dark Mode ---- */}
+          {/* Dark Mode */}
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
               {darkMode ? (
@@ -120,7 +123,7 @@ const Settings = () => {
             </button>
           </div>
 
-          {/* ---- Logout ---- */}
+          {/* Logout */}
           <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setShowLogoutModal(true)}
@@ -132,13 +135,12 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Back to Home */}
         <div className="mt-12">
           <BackToHome />
         </div>
       </div>
 
-      {/* ---- Logout Confirmation Modal ---- */}
+      {/* Logout Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fadeIn">
@@ -166,7 +168,7 @@ const Settings = () => {
         </div>
       )}
 
-      {/* ---- Toast Notification ---- */}
+      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-fadeIn">
           <div
