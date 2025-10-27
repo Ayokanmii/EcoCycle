@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import {
   doc,
   setDoc,
-r
   serverTimestamp,
   getDoc,
 } from "firebase/firestore";
@@ -39,7 +38,7 @@ const Toast = ({ msg, type = "success", onClose }) => {
 };
 
 /* -------------------------------------------------------------
-   2. Component (props.onReward → optional callback for MainApp)
+   2. Component
    ------------------------------------------------------------- */
 export default function EcoCycleCore({ onReward }) {
   const videoRef = useRef(null);
@@ -74,7 +73,7 @@ export default function EcoCycleCore({ onReward }) {
     setScanResult(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // back camera on mobile
+        video: { facingMode: "environment" },
       });
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
@@ -126,7 +125,6 @@ export default function EcoCycleCore({ onReward }) {
         const reward = data.price_per_kg || 0;
         const newWallet = wallet + reward;
 
-        // UI
         setWallet(newWallet);
         setScanResult({
           class: data.class,
@@ -135,7 +133,6 @@ export default function EcoCycleCore({ onReward }) {
           recyclable: data.recyclable,
         });
 
-        // Firestore (only if logged‑in)
         const user = auth.currentUser;
         if (user) {
           await setDoc(
@@ -145,9 +142,7 @@ export default function EcoCycleCore({ onReward }) {
           );
         }
 
-        // Notify parent (MainApp) – optional
         if (onReward) onReward(reward);
-
         setToast({ msg: `+₦${reward} added!`, type: "success" });
       } catch (err) {
         setToast({ msg: "AI scan failed", type: "error" });
@@ -183,14 +178,10 @@ export default function EcoCycleCore({ onReward }) {
   /* ---------- Cleanup ---------- */
   useEffect(() => () => stopCamera(), []);
 
-  /* -------------------------------------------------------------
-     UI (exactly the same layout you already love)
-     ------------------------------------------------------------- */
   return (
     <section className="py-16 bg-gradient-to-b from-white to-green-50 min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
 
-        {/* Header */}
         <h1 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
           Turn Waste into Cash
         </h1>
@@ -199,13 +190,11 @@ export default function EcoCycleCore({ onReward }) {
           Help Ogun State reach <strong className="text-accent">500 tons</strong>.
         </p>
 
-        {/* Wallet */}
         <div className="bg-gradient-to-r from-primary to-accent text-white p-6 rounded-2xl inline-block mb-8 shadow-xl">
           <p className="text-sm opacity-90">Your Wallet</p>
           <p className="text-4xl font-bold">₦{wallet.toLocaleString()}</p>
         </div>
 
-        {/* Camera */}
         <div className="relative inline-block max-w-md w-full">
           <video
             ref={videoRef}
@@ -243,30 +232,24 @@ export default function EcoCycleCore({ onReward }) {
           )}
         </div>
 
-        {/* Result / Error */}
-        {(scanResult || toast) && (
-          <div className="mt-6 p-5 rounded-xl max-w-md mx-auto">
-            {scanResult && (
-              <div className="bg-green-50 border-2 border-green-300 text-green-700">
-                <p className="font-bold text-xl">
-                  Detected: <span className="text-accent">{scanResult.class}</span>
-                </p>
-                <p className="text-sm mt-1">
-                  Confidence: {(scanResult.confidence * 100).toFixed(0)}%
-                </p>
-                {scanResult.recyclable ? (
-                  <p className="text-lg font-bold mt-2">
-                    <FaCheckCircle className="inline" /> +₦{scanResult.reward} added!
-                  </p>
-                ) : (
-                  <p className="text-red-600">Not recyclable</p>
-                )}
-              </div>
+        {scanResult && (
+          <div className="mt-8 p-5 bg-green-50 border-2 border-green-300 rounded-xl max-w-md mx-auto text-green-700">
+            <p className="font-bold text-xl">
+              Detected: <span className="text-accent">{scanResult.class}</span>
+            </p>
+            <p className="text-sm mt-1">
+              Confidence: {(scanResult.confidence * 100).toFixed(0)}%
+            </p>
+            {scanResult.recyclable ? (
+              <p className="text-lg font-bold mt-2">
+                <FaCheckCircle className="inline" /> +₦{scanResult.reward} added!
+              </p>
+            ) : (
+              <p className="text-red-600">Not recyclable</p>
             )}
           </div>
         )}
 
-        {/* Report Dump */}
         <div className="mt-12">
           <button
             onClick={() => setShowReport(true)}
@@ -276,7 +259,6 @@ export default function EcoCycleCore({ onReward }) {
           </button>
         </div>
 
-        {/* Report Modal */}
         {showReport && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
             <div className="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl relative">
@@ -312,7 +294,6 @@ export default function EcoCycleCore({ onReward }) {
           </div>
         )}
 
-        {/* How to Recycle */}
         <div className="mt-12">
           <button
             onClick={() => navigate("/how-to-recycle")}
@@ -322,7 +303,6 @@ export default function EcoCycleCore({ onReward }) {
           </button>
         </div>
 
-        {/* Toast */}
         {toast && (
           <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
         )}
