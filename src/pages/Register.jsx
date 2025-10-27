@@ -25,8 +25,8 @@ export default function Register() {
   };
   const strength = getPasswordStrength();
 
-  // ---------- Submit ----------
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ---------- Submit (NO TypeScript syntax) ----------
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -46,7 +46,7 @@ export default function Register() {
     try {
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       let errorMsg = "Registration failed. Please try again.";
       switch (err.code) {
         case "auth/email-already-in-use":
@@ -76,7 +76,6 @@ export default function Register() {
   return (
     <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center">
       <div className="max-w-6xl w-full px-4 sm:px-6 lg:px-8">
-        {/* Card – same as Login/Team/Impact */}
         <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 p-8 animate-fadeIn hover-lift">
 
           {/* Logo & Header */}
@@ -88,7 +87,7 @@ export default function Register() {
                 className="h-16 w-16"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
-                  e.currentTarget.nextSibling!.style.display = "block";
+                  e.currentTarget.nextSibling.style.display = "block";
                 }}
               />
               <div className="hidden text-6xl">Recycle</div>
@@ -185,10 +184,7 @@ export default function Register() {
             >
               {loading ? (
                 <>
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -224,10 +220,7 @@ export default function Register() {
           {/* Login Link */}
           <p className="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-accent hover:underline font-medium"
-            >
+            <Link to="/login" className="text-accent hover:underline font-medium">
               Login here
             </Link>
           </p>
