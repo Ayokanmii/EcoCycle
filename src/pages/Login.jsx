@@ -52,8 +52,8 @@ export default function Login() {
   return (
     <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center">
       <div className="max-w-6xl w-full px-4 sm:px-6 lg:px-8">
-        {/* Card – same styling as Team/Impact */}
         <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 p-8 animate-fadeIn hover-lift">
+          
           {/* Logo & Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
@@ -68,18 +68,14 @@ export default function Login() {
               />
               <div className="hidden text-6xl">Recycle</div>
             </div>
-
-            <h1 className="text-5xl md:text-6xl Fanfare font-bold text-primary mb-6 animate-fadeIn">
-              Welcome Back
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-xs mx-auto animate-fadeIn delay-300">
+            <h1 className="text-3xl font-bold text-primary">Welcome Back</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
               Login to continue recycling and earning in Ogun State
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email Address
@@ -95,7 +91,6 @@ export default function Login() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
@@ -121,7 +116,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
